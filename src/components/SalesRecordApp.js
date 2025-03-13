@@ -19,24 +19,22 @@ export default function SalesRecordApp() {
   const [showLogin, setShowLogin] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(true);
+
 
 
   //toggle darkmode
 
   const toggleDarkMode = () => {
-    setShowSplash(true); // Show splash screen
-
-    setTimeout(() => {
-      if (darkMode) {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      } else {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      }
-      setDarkMode(!darkMode);
-      setShowSplash(false); // Hide splash after animation
-    }, 700); // Adjust timing to match animation
+    if (darkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    }
+    setDarkMode(!darkMode);
   };
 
 
@@ -56,7 +54,9 @@ export default function SalesRecordApp() {
         }
       } else {
         setUser(null);
+        
       }
+      setLoading(false)
     });
 
     // Check for saved dark mode preference
@@ -179,54 +179,66 @@ export default function SalesRecordApp() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-      <div className="p-6 max-w-2xl mx-auto">
+    {loading ? (
+      // 🔹 Stylish Animated Loading Screen
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4 animate-fadeIn">
+          {/* Loading Spinner */}
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
 
-        {/* 🔹 Splash Screen Effect (Appears when switching themes) */}
-        {showSplash && (
-          <div className="fixed inset-0 bg-blue-500 dark:bg-black z-50 flex items-center justify-center animate-fadeOut">
-            <span className="text-white text-2xl font-bold animate-scaleUp">
-              Switching Theme...
-            </span>
-          </div>
-        )}
-
-        {/* 🌙 Dark Mode Toggle Button */}
-        <div className="flex justify-end mb-4">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={darkMode}
-              onChange={toggleDarkMode}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
-              {darkMode ? "🌙 Dark Mode" : "☀️ Light Mode"}
-            </span>
-          </label>
+          {/* Loading Text */}
+          <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+            Preparing your dashboard...
+          </p>
         </div>
-        {!user ? (
-          showLogin ? (
-            <Login onAuthSuccess={() => setUser(auth.currentUser)} />
-          ) : (
-            <Signup onAuthSuccess={() => setUser(auth.currentUser)} />
-          )
-        ) : (
-          <>
-            <h1 className="text-xl font-bold mb-4">Sales Record</h1>
-            <Button className="bg-red-500 text-white p-2 mb-4" onClick={handleLogout}>Logout</Button>
-            <SalesForm addSale={addSale} />
-            <SalesTable sales={sales} deleteSale={deleteSale} />
-            <Summary totalSales={totalSales} totalSpends={totalSpends} totalProfitLoss={totalProfitLoss} />
-          </>
-        )}
-
-        {!user && (
-          <Button className="mt-4 p-2 border rounded" onClick={() => setShowLogin(!showLogin)}>
-            {showLogin ? "Go to Signup" : "Go to Login"}
-          </Button>
-        )}
       </div>
+    ) : (
+        // 🔹 Show the main app content after loading completes
+        <div className="p-6 max-w-2xl mx-auto">
+          
+          {/* 🔹 Splash Screen Effect (Appears when switching themes) */}
+          {/* {showSplash && (
+            <div className="fixed inset-0 bg-blue-500 dark:bg-black z-50 flex items-center justify-center animate-fadeOut">
+              <span className="text-white text-2xl font-bold animate-scaleUp">
+                Switching Theme...
+              </span>
+            </div>
+          )} */}
+  
+          {/* 🌙 Dark Mode Toggle Button */}
+          <div className="flex justify-end mb-4">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={darkMode}
+                onChange={toggleDarkMode}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                {darkMode ? "🌙 Dark Mode" : "☀️ Light Mode"}
+              </span>
+            </label>
+          </div>
+  
+          {!user ? (
+            showLogin ? (
+              <Login setShowLogin={setShowLogin} onAuthSuccess={() => setUser(auth.currentUser)} />
+            ) : (
+              <Signup setShowLogin={setShowLogin} onAuthSuccess={() => setUser(auth.currentUser)} />
+            )
+          ) : (
+            <>
+              <h1 className="text-xl font-bold mb-4">Sales Record</h1>
+              <Button className="bg-red-500 text-white p-2 mb-4" onClick={handleLogout}>Logout</Button>
+              <SalesForm addSale={addSale} />
+              <SalesTable sales={sales} deleteSale={deleteSale} />
+              <Summary totalSales={totalSales} totalSpends={totalSpends} totalProfitLoss={totalProfitLoss} />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
+  
 }

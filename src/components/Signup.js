@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { auth } from "../firebaseConfig";
-import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithPopup, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 import { motion } from "framer-motion";
 
 
@@ -50,6 +50,16 @@ export default function Signup({ setShowLogin, onAuthSuccess }) {
         }
     };
 
+    const handleAppleSignIn = async () => {
+        try {
+            const provider = new OAuthProvider("apple.com");
+            await signInWithPopup(auth, provider);
+            onAuthSuccess(); // Redirect after successful login
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-cover bg-center"
             style={{ backgroundImage: "url('/your-image.jpg')" }}>
@@ -83,7 +93,7 @@ export default function Signup({ setShowLogin, onAuthSuccess }) {
                     <button
                         onClick={() => setShowLogin(false)}
                         className={`px-6 py-2 rounded-lg font-semibold transition-all ${true ? "bg-gray-400 text-white cursor-default"
-                                : "bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white"
+                            : "bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white"
                             }`}
                         disabled={true} // Always disabled on Signup page
                     >
@@ -148,6 +158,14 @@ export default function Signup({ setShowLogin, onAuthSuccess }) {
                     <img src="/google-logo.png" alt="Google Logo" className="w-5 h-5" />
                     Sign in with Google
                 </button>
+
+                {/* <button
+                    className="w-full flex items-center justify-center gap-2 border border-gray-300 py-4 rounded-full text-gray-700 font-medium hover:bg-gray-100 transition"
+                    onClick={handleAppleSignIn}
+                >
+                    <img src="/apple-logo.png" alt="Apple Logo" className="w-5 h-5" />
+                    Sign in with Apple
+                </button> */}
             </motion.div>
         </div >
     );

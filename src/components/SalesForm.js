@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
@@ -37,18 +37,22 @@ export default function SalesForm({ addSale }) {
   // Fetch categories from Firebase
   useEffect(() => {
     const fetchCategories = async () => {
-      try {
-        const q = query(collection(db, "categories"));
-        const querySnapshot = await getDocs(q);
-        const categoryData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setCategories(categoryData);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
+        const user = auth.currentUser; // ✅ Get logged-in user
+
+        if (!user) return; // If no user, don't fetch
+
+        try {
+            const q = query(collection(db, "categories"), where("userId", "==", user.uid)); // ✅ Fetch only this user's categories
+            const querySnapshot = await getDocs(q);
+            setCategories(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+        }
     };
 
     fetchCategories();
-  }, []);
+}, []);
+
 
   // Function to Save Category (Update Existing or Add New)
   const handleSaveCategory = async () => {

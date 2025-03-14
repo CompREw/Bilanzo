@@ -1,13 +1,38 @@
+"use client";
+
+
 import React, { useState, useEffect } from "react";
 import { FaBars, FaTimes, FaSignOutAlt, FaShoppingCart, FaFileAlt, FaCog, FaMoon, FaSun } from "react-icons/fa"; // ✅ Fixed Importimport "./Sidebar.css"; // Make sure this file exists
 import { Link } from "react-router-dom";
 import "./Sidebar.css"; // Ensure Sidebar styling exists
+import { useNavigate } from "react-router-dom";
+import { auth } from "../firebaseConfig"; // ✅ Import Firebase Auth
+import { signOut } from "firebase/auth";
+import { useLocation } from "react-router-dom";
+
+
+
+
 
 
 
 
 const Sidebar = ({ onLogout }) => {
-    
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth); // ✅ Log out the user
+
+            navigate("/"); // ✅ Redirect to Login page
+        } catch (error) {
+            console.error("Logout Error:", error);
+            alert("Failed to log out. Please try again.");
+        }
+    };
+
+
     const [isOpen, setIsOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(() => {
         // ✅ Load theme from localStorage on initial render
@@ -22,11 +47,20 @@ const Sidebar = ({ onLogout }) => {
 
     // Toggle Dark Mode
     const toggleDarkMode = () => {
+        if (typeof window === "undefined" || typeof document === "undefined") return; // ✅ Prevents SSR error
+
         const newMode = !darkMode;
         setDarkMode(newMode);
-        document.documentElement.classList.toggle("dark", newMode);
         localStorage.setItem("theme", newMode ? "dark" : "light");
+
+        // ✅ Use `.add()` or `.remove()` instead of `.toggle()` for reliability
+        if (newMode) {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
     };
+
 
 
 
@@ -38,27 +72,37 @@ const Sidebar = ({ onLogout }) => {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    
+
     // Load Dark Mode preference from localStorage
     useEffect(() => {
-        if (localStorage.getItem("theme") === "dark") {
-            setDarkMode(true);
-            document.documentElement.classList.add("dark");
+        if (typeof window !== "undefined" && typeof document !== "undefined") {
+            const savedTheme = localStorage.getItem("theme") === "dark";
+            setDarkMode(savedTheme);
+    
+            if (savedTheme) {
+                document.documentElement.classList.add("dark");
+            } else {
+                document.documentElement.classList.remove("dark");
+            }
         }
     }, []);
+    
 
 
     // Close sidebar when clicking outside
     useEffect(() => {
-        const handleOutsideClick = (event) => {
-            if (isOpen && !event.target.closest(".sidebar") && !event.target.closest(".sidebar-toggle")) {
-                setIsOpen(false);
-            }
-        };
+    if (typeof document === "undefined") return; // ✅ Prevents SSR error
 
-        document.addEventListener("click", handleOutsideClick);
-        return () => document.removeEventListener("click", handleOutsideClick);
-    }, [isOpen]);
+    const handleOutsideClick = (event) => {
+        if (isOpen && !event.target.closest(".sidebar") && !event.target.closest(".sidebar-toggle")) {
+            setIsOpen(false);
+        }
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+}, [isOpen]);
+
 
     return (
         <>
@@ -109,7 +153,7 @@ const Sidebar = ({ onLogout }) => {
                 </div>
 
                 {/* Logout Button */}
-                <button className="logout-btn" onClick={onLogout}>
+                <button className="logout-btn" onClick={handleLogout}>
                     <FaSignOutAlt /> Logout
                 </button>
             </div>

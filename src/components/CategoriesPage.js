@@ -1,6 +1,9 @@
+"use client";
+
+
 import React, { useEffect, useState } from "react";
-import { db } from "../firebaseConfig";
-import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc  } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
+import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc, query, where  } from "firebase/firestore";
 import { motion } from "framer-motion";
 import SalesForm from "./SalesForm"; // Import the form
 
@@ -10,44 +13,112 @@ export default function CategoriesPage() {
     const [newCategoryName, setNewCategoryName] = useState("");
     const [newCategoryColor, setNewCategoryColor] = useState("#000000");
     const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [user, setUser] = useState(null);
 
+
+    
+    
     // Fetch categories from Firebase
+    
     useEffect(() => {
         const fetchCategories = async () => {
-            const querySnapshot = await getDocs(collection(db, "categories"));
-            const categoryData = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            setCategories(categoryData);
+            const user = auth.currentUser;
+            if (!user) {
+                setCategories([]); // ✅ Clear categories if logged out
+                return;
+            }
+    
+            try {
+                const q = query(collection(db, "categories"), where("userId", "==", user.uid)); // ✅ Fetch only this user's categories
+                const querySnapshot = await getDocs(q);
+    
+                const userCategories = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+    
+                console.log("Fetched Categories:", userCategories); // ✅ Debugging
+                setCategories(userCategories);
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
         };
-
+    
         fetchCategories();
     }, []);
+    
+    
+    
+    useEffect(() => {
+        // ✅ Listen for auth state changes
+        const unsubscribe = auth.onAuthStateChanged((loggedInUser) => {
+            setUser(loggedInUser);
+            if (loggedInUser) {
+                fetchCategories(loggedInUser.uid); // ✅ Fetch categories when user logs in
+            } else {
+                setCategories([]); // ✅ Clear categories when logged out
+            }
+        });
+    
+        return () => unsubscribe(); // ✅ Clean up listener
+    }, []);
+    
+    const fetchCategories = async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            setCategories([]);
+            return;
+        }
+    
+        try {
+            const q = query(collection(db, "categories"), where("userId", "==", user.uid)); // ✅ Fetch only the logged-in user's categories
+            const querySnapshot = await getDocs(q);
+    
+            const userCategories = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+    
+            console.log("Fetched Categories:", userCategories); // ✅ Debugging
+            setCategories(userCategories);
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+        }
+    };
+    
+    
+
+    
 
     const handleCreateCategory = async () => {
         if (!newCategoryName.trim()) {
             alert("Category name cannot be empty!");
             return;
         }
-
+    
+        const user = auth.currentUser;
+        if (!user) {
+            alert("You need to be logged in to create categories.");
+            return;
+        }
+    
         try {
-            // ✅ Add category to Firestore
             const docRef = await addDoc(collection(db, "categories"), {
                 name: newCategoryName,
-                color: newCategoryColor
+                color: newCategoryColor,
+                userId: user.uid, // ✅ Store the user ID
             });
-
-            // ✅ Update local state to reflect the new category
-            setCategories([...categories, { id: docRef.id, name: newCategoryName, color: newCategoryColor }]);
-
-            // ✅ Close the modal and reset inputs
-            setShowCategoryModal(false);
-            setNewCategoryName("");
-            setNewCategoryColor("#000000");
+    
+            setCategories([...categories, { id: docRef.id, name: newCategoryName, color: newCategoryColor, userId: user.uid }]);
+            alert("Category created successfully!");
         } catch (error) {
             console.error("Error saving category:", error);
-            alert("Failed to save category. Check console for details.");
+            alert("Failed to save category.");
         }
     };
-
+    
+    
+    
     // Handle category update
     const handleUpdateCategory = async () => {
         if (editingCategory) {
@@ -64,10 +135,46 @@ export default function CategoriesPage() {
     };
 
     // Handle category delete
+
     const handleDeleteCategory = async (categoryId) => {
-        await deleteDoc(doc(db, "categories", categoryId));
-        setCategories(categories.filter(cat => cat.id !== categoryId));
+        const user = auth.currentUser; // ✅ Get the currently logged-in user
+    
+        if (!user) {
+            alert("You need to be logged in to delete categories.");
+            return;
+        }
+    
+        // ✅ Find the category to get the owner ID
+        const categoryToDelete = categories.find(cat => cat.id === categoryId);
+    
+        if (!categoryToDelete) {
+            alert("Category not found.");
+            return;
+        }
+    
+        console.log("Logged-in User ID:", user.uid);
+        console.log("Category Owner ID:", categoryToDelete.userId);
+    
+        if (user.uid !== categoryToDelete.userId) {
+            alert("You can only delete your own categories.");
+            return;
+        }
+    
+        try {
+            await deleteDoc(doc(db, "categories", categoryId));
+            setCategories(categories.filter((cat) => cat.id !== categoryId)); // ✅ Remove from state
+            alert("Category deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting category:", error);
+            alert("Failed to delete category.");
+        }
     };
+    
+    
+    // const handleDeleteCategory = async (categoryId) => {
+    //     await deleteDoc(doc(db, "categories", categoryId));
+    //     setCategories(categories.filter(cat => cat.id !== categoryId));
+    // };
 
     return (
         <div className="p-6 max-w-2xl mx-auto">

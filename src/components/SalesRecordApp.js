@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import CategoriesPage from "./CategoriesPage"; // Import new page
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom"; // ✅ Import `useLocation()`
 
 
 export default function SalesRecordApp() {
@@ -27,23 +29,44 @@ export default function SalesRecordApp() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]); // Add this line to initialize categories
+  // const navigate = useNavigate(); // ✅ Initialize navigation
+  const location = useLocation(); // ✅ Get the current route
+  const hideSidebar = location.pathname === "/login" || location.pathname === "/signup";
 
 
 
+  // Toggle Dark Mode on Initial Load
+// useEffect(() => {
+//   if (typeof window !== "undefined" && typeof document !== "undefined") {
+//       const savedTheme = localStorage.getItem("theme") === "dark";
+//       setDarkMode(savedTheme);
 
-  //toggle darkmode
+//       if (savedTheme) {
+//           document.documentElement.classList.add("dark");
+//       } else {
+//           document.documentElement.classList.remove("dark");
+//       }
+//   }
+// }, []);
 
-  const toggleDarkMode = () => {
-    if (darkMode) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    } else {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    }
-    setDarkMode(!darkMode);
-  };
+// const toggleDarkMode = () => {
+//   setDarkMode((prevMode) => {
+//       const newMode = !prevMode;
 
+//       if (typeof window !== "undefined" && typeof document !== "undefined") {
+//           localStorage.setItem("theme", newMode ? "dark" : "light");
+
+//           // ✅ Use `add` or `remove` instead of `toggle` for reliability
+//           if (newMode) {
+//               document.documentElement.classList.add("dark");
+//           } else {
+//               document.documentElement.classList.remove("dark");
+//           }
+//       }
+
+//       return newMode;
+//   });
+// };
 
 
 
@@ -196,16 +219,24 @@ export default function SalesRecordApp() {
 
   // Logout function
   const handleLogout = async () => {
-    await signOut(auth);
-    setUser(null);
-    setSales([]);
-  };
+    try {
+        await signOut(auth); // ✅ Log out the user
+        setUser(null);
+        setSales([]);
+        navigate("/login"); // ✅ Redirect to Login page
+    } catch (error) {
+        console.error("Logout Error:", error);
+        alert("Failed to log out. Please try again.");
+    }
+};
+
 
   return (
-    <Router>
+    // <Router>
       <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-        {/* Sidebar Component */}
-        <Sidebar onLogout={handleLogout} />
+        
+        {/* ✅ Show Sidebar only if NOT on Login/Signup Page */}
+        {!hideSidebar && user && <Sidebar onLogout={handleLogout} />}
 
         {/* Main Content Area */}
         <div className="flex-grow p-6">
@@ -296,6 +327,6 @@ export default function SalesRecordApp() {
           )}
         </div>
       </div>
-    </Router>
+    // </Router>
   );
 }
